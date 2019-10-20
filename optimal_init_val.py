@@ -4,62 +4,72 @@ CS234 - Optimal Initial Value
 Project Athena
 Date - 20/10/2019
 '''
+from __future__ import print_function, division
+from builtins import range
+# Note: you may need to update your version of future
+# sudo pip install -U future
 
 import numpy as np
 import matplotlib.pyplot as plt
+from epsilon_greedy import run_experiment as run_experiment_eps
+
 
 class Bandit:
-    def __init__(self,m):
-        self.m = m #true mean
-        self.mean = 10 #initial mean
-        self.N = 0 #number of runs
+  def __init__(self, m, upper_limit):
+    self.m = m
+    self.mean = upper_limit
+    self.N = 1
 
-    def pull(self):
-        return np.random.randn() + self.m
+  def pull(self):
+    return np.random.randn() + self.m
 
-    def update(self,x): #x is the latest sample received from the Bandit
-        self.N += 1
-        self.mean = (1-1.0/self.N)*self.mean + (1.0/self.N)*x
+  def update(self, x):
+    self.N += 1
+    self.mean = (1 - 1.0/self.N)*self.mean + 1.0/self.N*x
 
-def run_experiment(m1,m2,m3,eps,N): #m1,m2,m3 are 3 different means
-    bandits = [Bandit(m1), Bandit(m2), Bandit(m3)]
-    data = np.empty(N)
 
-    for i in range(N):
-        j = np.argmax([b.mean for b in bandits]) #pull the arm with max val
-        x = bandits[j].pull()
-        bandits[j].update(x)
+def run_experiment(m1, m2, m3, N, upper_limit=10):
+  bandits = [Bandit(m1, upper_limit), Bandit(m2, upper_limit), Bandit(m3, upper_limit)]
 
-        data[i] = x
-    cumulative_avg = np.cumsum(data) / (np.arange(N)+1)
+  data = np.empty(N)
 
-    plt.plot(cumulative_avg)
-    plt.plot(np.ones(N)*m1)
-    plt.plot(np.ones(N)*m2)
-    plt.plot(np.ones(N)*m3)
-    plt.xscale('log')
-    plt.show()
+  for i in range(N):
+    # optimistic initial values
+    j = np.argmax([b.mean for b in bandits])
+    x = bandits[j].pull()
+    bandits[j].update(x)
 
-    for b in bandits:
-        print(b.mean)
-    return cumulative_avg
+    # for the plot
+    data[i] = x
+  cumulative_average = np.cumsum(data) / (np.arange(N) + 1)
+
+  # plot moving average ctr
+  plt.plot(cumulative_average)
+  plt.plot(np.ones(N)*m1)
+  plt.plot(np.ones(N)*m2)
+  plt.plot(np.ones(N)*m3)
+  plt.xscale('log')
+  plt.show()
+
+  for b in bandits:
+    print(b.mean)
+
+  return cumulative_average
 
 if __name__ == '__main__':
-    c_10 = run_experiment(1.0,2.0,3.0,0.1,100000)
-    c_05 = run_experiment(1.0,2.0,3.0,0.05,100000)
-    c_01 = run_experiment(1.0,2.0,3.0,0.01,100000)
+  c_1 = run_experiment_eps(1.0, 2.0, 3.0, 0.1, 100000)
+  oiv = run_experiment(1.0, 2.0, 3.0, 100000)
 
-    #log scale pyplot
-    plt.plot(c_10, label = 'eps = 0.1')
-    plt.plot(c_05, label = 'eps = 0.05')
-    plt.plot(c_01, label = 'eps = 0.01')
-    plt.legend()
-    plt.xscale('log')
-    plt.show()
+  # log scale plot
+  plt.plot(c_1, label='eps = 0.1')
+  plt.plot(oiv, label='optimistic')
+  plt.legend()
+  plt.xscale('log')
+  plt.show()
 
-    #linear pyplot
-    plt.plot(c_10, label = 'eps = 0.1')
-    plt.plot(c_05, label = 'eps = 0.05')
-    plt.plot(c_01, label = 'eps = 0.01')
-    plt.legend()
-    plt.show()
+
+  # linear plot
+  plt.plot(c_1, label='eps = 0.1')
+  plt.plot(oiv, label='optimistic')
+  plt.legend()
+  plt.show()
